@@ -1,7 +1,252 @@
 <!DOCTYPE html>
-<html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ASCII Art Generator</title>
+    <style>
+        :root {
+            --bg-color: #f4f4f9;
+            --text-color: #333;
+            --accent-color: #4a90e2;
+            --panel-bg: #ffffff;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+        }
+
+        h1 {
+            margin-top: 0;
+            color: var(--accent-color);
+        }
+
+        .controls {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            margin-bottom: 20px;
+            display: flex;
+            flex-wrap: wrap;
+            gap: 15px;
+            align-items: center;
+            max-width: 800px;
+            width: 100%;
+        }
+
+        .control-group {
+            display: flex;
+            flex-direction: column;
+            gap: 5px;
+        }
+
+        label {
+            font-size: 0.9rem;
+            font-weight: bold;
+        }
+
+        input[type="file"], select, input[type="number"] {
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+        }
+
+        button {
+            background-color: var(--accent-color);
+            color: white;
+            border: none;
+            padding: 10px 15px;
+            border-radius: 4px;
+            cursor: pointer;
+            font-weight: bold;
+            transition: background 0.3s ease;
+        }
+
+        button:hover {
+            background-color: #357abd;
+        }
+
+        button:disabled {
+            background-color: #ccc;
+            cursor: not-allowed;
+        }
+
+        .output-container {
+            background: var(--panel-bg);
+            padding: 20px;
+            border-radius: 8px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+            max-width: 100%;
+            overflow: auto;
+        }
+
+        /* Crucial CSS for ASCII Art */
+        pre {
+            font-family: monospace;
+            font-size: 8px;
+            line-height: 8px;
+            letter-spacing: 0;
+            margin: 0;
+            white-space: pre;
+            color: black;
+        }
+    </style>
+</head>
 <body>
-  <h1>Привет, мир!</h1>
-  <p>Мой первый сайт на GitHub.</p>
+
+    <h1>ASCII Art Generator</h1>
+
+    <div class="controls">
+        <div class="control-group">
+            <label for="imageUpload">1. Upload Image</label>
+            <input type="file" id="imageUpload" accept="image/*">
+        </div>
+
+        <div class="control-group">
+            <label for="charSet">2. Style (Density)</label>
+            <select id="charSet">
+                <option value="@%#*+=-:. ">Dense (@%#*+=-:. )</option>
+                <option value="@#S%?*+;:, ">Medium (@#S%?*+;:, )</option>
+                <option value="#;:, ">Sparse (#;:, )</option>
+            </select>
+        </div>
+
+        <div class="control-group">
+            <label for="outputWidth">3. Width (Characters)</label>
+            <input type="number" id="outputWidth" value="100" min="20" max="300" step="10">
+        </div>
+
+        <div class="control-group" style="flex-direction: row; align-items: center; margin-top: 15px;">
+            <input type="checkbox" id="invertColors">
+            <label for="invertColors">Invert Colors</label>
+        </div>
+
+        <div class="control-group" style="margin-left: auto; margin-top: 15px;">
+            <button id="downloadBtn" disabled>4. Download .txt</button>
+        </div>
+    </div>
+
+    <div class="output-container">
+        <pre id="asciiOutput">Upload an image to see the ASCII preview here...</pre>
+    </div>
+
+    <canvas id="hiddenCanvas" style="display:none;"></canvas>
+
+    <script>
+        const imageUpload = document.getElementById('imageUpload');
+        const charSetSelect = document.getElementById('charSet');
+        const outputWidthInput = document.getElementById('outputWidth');
+        const invertColorsCheckbox = document.getElementById('invertColors');
+        const downloadBtn = document.getElementById('downloadBtn');
+        const asciiOutput = document.getElementById('asciiOutput');
+        const canvas = document.getElementById('hiddenCanvas');
+        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+
+        let currentImage = null;
+
+        // --- Event Listeners ---
+        imageUpload.addEventListener('change', handleImageUpload);
+        charSetSelect.addEventListener('change', generateASCII);
+        outputWidthInput.addEventListener('change', generateASCII);
+        invertColorsCheckbox.addEventListener('change', generateASCII);
+        downloadBtn.addEventListener('click', downloadASCII);
+
+        // --- Functions ---
+        function handleImageUpload(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const img = new Image();
+                img.onload = function() {
+                    currentImage = img;
+                    generateASCII();
+                    downloadBtn.disabled = false;
+                };
+                img.src = e.target.result;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function generateASCII() {
+            if (!currentImage) return;
+
+            // 1. Get settings
+            let charSet = charSetSelect.value;
+            if (invertColorsCheckbox.checked) {
+                charSet = charSet.split('').reverse().join('');
+            }
+            const width = parseInt(outputWidthInput.value) || 100;
+
+            // 2. Calculate aspect ratio. 
+            // Monospace characters are roughly twice as tall as they are wide.
+            // We multiply the height by ~0.55 to prevent the image from looking stretched vertically.
+            const aspectRatio = currentImage.height / currentImage.width;
+            const fontAspectRatioCorrection = 0.55; 
+            const height = Math.floor(width * aspectRatio * fontAspectRatioCorrection);
+
+            // 3. Set canvas size and draw resized image
+            canvas.width = width;
+            canvas.height = height;
+            ctx.drawImage(currentImage, 0, 0, width, height);
+
+            // 4. Get pixel data
+            const imageData = ctx.getImageData(0, 0, width, height);
+            const pixels = imageData.data;
+
+            let asciiStr = '';
+
+            // 5. Loop through pixels and map brightness to ASCII
+            for (let y = 0; y < height; y++) {
+                for (let x = 0; x < width; x++) {
+                    const offset = (y * width + x) * 4;
+                    const r = pixels[offset];
+                    const g = pixels[offset + 1];
+                    const b = pixels[offset + 2];
+                    
+                    // Calculate relative luminance (brightness)
+                    const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
+                    
+                    // Map brightness (0-255) to character index
+                    const charIndex = Math.floor((brightness / 255) * (charSet.length - 1));
+                    
+                    asciiStr += charSet[charIndex];
+                }
+                asciiStr += '\n'; // New line at the end of each row
+            }
+
+            // 6. Output to screen
+            asciiOutput.textContent = asciiStr;
+        }
+
+        function downloadASCII() {
+            const asciiText = asciiOutput.textContent;
+            if (asciiText === "Upload an image to see the ASCII preview here...") return;
+
+            // Create a Blob with the text content
+            const blob = new Blob([asciiText], { type: "text/plain" });
+            const url = URL.createObjectURL(blob);
+            
+            // Create a temporary link to trigger the download
+            const a = document.createElement("a");
+            a.href = url;
+            a.download = "ascii-art.txt";
+            document.body.appendChild(a);
+            a.click();
+            
+            // Clean up
+            document.body.removeChild(a);
+            URL.revokeObjectURL(url);
+        }
+    </script>
 </body>
 </html>
