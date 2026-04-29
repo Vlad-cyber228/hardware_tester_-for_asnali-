@@ -3,85 +3,104 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Hardware Stress Tester</title>
+    <title>Dedicated GPU Stress Test</title>
     <style>
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: #1a1a1a;
-            color: #fff;
+        body, html {
             margin: 0;
+            padding: 0;
+            width: 100%;
+            height: 100%;
+            background-color: #0d0d0d;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            color: white;
+            overflow: hidden;
             display: flex;
-            flex-direction: column;
             align-items: center;
             justify-content: center;
-            height: 100vh;
-            overflow: hidden;
         }
 
-        h1 { margin-bottom: 5px; color: #ff4d4d; }
-        p { color: #aaa; margin-bottom: 30px; }
-
-        .dashboard {
-            background: #2a2a2a;
-            padding: 30px;
-            border-radius: 12px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
-            z-index: 10;
-            display: flex;
-            gap: 20px;
-        }
-
-        .card {
-            background: #333;
-            padding: 20px;
-            border-radius: 8px;
-            text-align: center;
-            width: 250px;
-            border: 2px solid transparent;
-            transition: border-color 0.3s;
-        }
-
-        .card.active { border-color: #ff4d4d; }
-
-        .status {
-            font-size: 1.2rem;
-            font-weight: bold;
-            margin: 15px 0;
-            color: #00ffcc;
-        }
-
-        .status.stressing { color: #ff4d4d; animation: pulse 1s infinite alternate; }
-
-        button {
-            background: #444;
-            color: white;
-            border: none;
-            padding: 12px 20px;
-            font-size: 1rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-weight: bold;
-            width: 100%;
-            transition: background 0.3s;
-        }
-
-        button:hover { background: #555; }
-        button.stop { background: #ff4d4d; }
-        button.stop:hover { background: #cc0000; }
-
-        @keyframes pulse {
-            from { opacity: 1; }
-            to { opacity: 0.5; }
-        }
-
-        /* GPU Canvas Background */
         #glcanvas {
             position: absolute;
             top: 0; left: 0;
             width: 100%; height: 100%;
             z-index: 1;
-            opacity: 0; /* Hidden until GPU test starts */
+            opacity: 0;
             transition: opacity 0.5s ease;
+        }
+
+        .control-panel {
+            position: relative;
+            z-index: 10;
+            background: rgba(20, 20, 20, 0.85);
+            backdrop-filter: blur(10px);
+            padding: 40px;
+            border-radius: 16px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+            text-align: center;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.8);
+            max-width: 400px;
+            transition: box-shadow 0.3s ease;
+        }
+
+        .control-panel.active {
+            box-shadow: 0 0 40px rgba(255, 50, 50, 0.4);
+            border-color: rgba(255, 50, 50, 0.5);
+        }
+
+        h1 { margin-top: 0; color: #ff3333; font-size: 1.8rem; }
+        p { color: #aaaaaa; font-size: 0.95rem; line-height: 1.5; margin-bottom: 25px; }
+
+        .status-badge {
+            display: inline-block;
+            background: #333;
+            padding: 8px 16px;
+            border-radius: 20px;
+            font-weight: bold;
+            font-size: 0.9rem;
+            margin-bottom: 25px;
+            color: #00ffcc;
+            letter-spacing: 1px;
+        }
+
+        .status-badge.stressing {
+            background: #ff3333;
+            color: #fff;
+            animation: pulse 1s infinite alternate;
+        }
+
+        button {
+            background: #222;
+            color: white;
+            border: 2px solid #555;
+            padding: 15px 30px;
+            font-size: 1.1rem;
+            border-radius: 8px;
+            cursor: pointer;
+            font-weight: bold;
+            width: 100%;
+            transition: all 0.3s ease;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+        }
+
+        button:hover {
+            background: #333;
+            border-color: #777;
+        }
+
+        button.stop {
+            background: #ff3333;
+            border-color: #ff3333;
+        }
+
+        button.stop:hover {
+            background: #cc0000;
+            border-color: #cc0000;
+        }
+
+        @keyframes pulse {
+            from { opacity: 1; transform: scale(1); }
+            to { opacity: 0.8; transform: scale(1.05); }
         }
     </style>
 </head>
@@ -89,100 +108,24 @@
 
     <canvas id="glcanvas"></canvas>
 
-    <div style="z-index: 10; text-align: center;">
-        <h1>System Burner MVP</h1>
-        <p>Warning: This will generate significant heat and load.</p>
-    </div>
-
-    <div class="dashboard">
-        <div class="card" id="cpuCard">
-            <h2>CPU Stress</h2>
-            <div class="status" id="cpuStatus">IDLE</div>
-            <div id="coreCount" style="font-size: 0.8rem; color: #888; margin-bottom: 15px;"></div>
-            <button id="cpuBtn">Start CPU Burn</button>
-        </div>
-
-        <div class="card" id="gpuCard">
-            <h2>GPU Stress</h2>
-            <div class="status" id="gpuStatus">IDLE</div>
-            <div style="font-size: 0.8rem; color: #888; margin-bottom: 15px;">Heavy Mandelbrot Shader</div>
-            <button id="gpuBtn">Start GPU Burn</button>
-        </div>
+    <div class="control-panel" id="panel">
+        <h1>GPU Torture Test</h1>
+        <div class="status-badge" id="statusBadge">STATUS: IDLE</div>
+        <p>This test renders a dynamic 1000-iteration Mandelbrot fractal. It forces millions of parallel floating-point calculations per frame.</p>
+        <button id="toggleBtn">Initiate GPU Burn</button>
     </div>
 
     <script>
-        // --- CPU STRESS LOGIC (Web Workers) ---
-        const cpuBtn = document.getElementById('cpuBtn');
-        const cpuStatus = document.getElementById('cpuStatus');
-        const cpuCard = document.getElementById('cpuCard');
-        const coreCountDisplay = document.getElementById('coreCount');
-        
-        let cpuActive = false;
-        let workers = [];
-        const logicalCores = navigator.hardwareConcurrency || 4; // Get max threads
-        coreCountDisplay.textContent = `Targeting ${logicalCores} Logical Cores`;
-
-        // The heavy math loop for the workers
-        const workerCode = `
-            self.onmessage = function(e) {
-                if (e.data === 'start') {
-                    let v = 0;
-                    // Infinite loop of floating point math
-                    while(true) {
-                        for(let i=0; i<10000; i++) {
-                            v += Math.sqrt(i) * Math.sin(i) * Math.random();
-                        }
-                    }
-                }
-            };
-        `;
-
-        cpuBtn.addEventListener('click', () => {
-            if (!cpuActive) {
-                // Start CPU Stress
-                cpuActive = true;
-                cpuStatus.textContent = "STRESSING MAX CORES";
-                cpuStatus.className = "status stressing";
-                cpuCard.className = "card active";
-                cpuBtn.textContent = "Stop CPU Burn";
-                cpuBtn.className = "stop";
-
-                // Create a blob from the worker code to spawn workers without external files
-                const blob = new Blob([workerCode], { type: 'application/javascript' });
-                const workerUrl = URL.createObjectURL(blob);
-
-                // Spawn a worker for EVERY logical core
-                for (let i = 0; i < logicalCores; i++) {
-                    const worker = new Worker(workerUrl);
-                    worker.postMessage('start');
-                    workers.push(worker);
-                }
-            } else {
-                // Stop CPU Stress
-                cpuActive = false;
-                cpuStatus.textContent = "IDLE";
-                cpuStatus.className = "status";
-                cpuCard.className = "card";
-                cpuBtn.textContent = "Start CPU Burn";
-                cpuBtn.className = "";
-
-                // Terminate all workers instantly
-                workers.forEach(worker => worker.terminate());
-                workers = [];
-            }
-        });
-
-        // --- GPU STRESS LOGIC (WebGL) ---
-        const gpuBtn = document.getElementById('gpuBtn');
-        const gpuStatus = document.getElementById('gpuStatus');
-        const gpuCard = document.getElementById('gpuCard');
         const canvas = document.getElementById('glcanvas');
+        const toggleBtn = document.getElementById('toggleBtn');
+        const statusBadge = document.getElementById('statusBadge');
+        const panel = document.getElementById('panel');
         
-        let gpuActive = false;
+        let isActive = false;
         let gl, program, timeLocation, reqAnimFrame;
         let startTime = Date.now();
 
-        // Vertex Shader: Just draws a full screen square
+        // Vertex Shader - Sets up the canvas space
         const vsSource = `
             attribute vec4 aVertexPosition;
             void main() {
@@ -190,45 +133,52 @@
             }
         `;
 
-        // Fragment Shader: Heavy Fractal Math (Mandelbrot Set)
-        // 500 iterations per pixel on high precision floats = melted GPU
+        // Fragment Shader - The real GPU killer
         const fsSource = `
             precision highp float;
             uniform vec2 u_resolution;
             uniform float u_time;
 
             void main() {
-                // Normalize coordinates
+                // Normalize pixel coordinates
                 vec2 c = 2.0 * gl_FragCoord.xy / u_resolution - 1.0;
                 
-                // Add a slight zoom and pan based on time to force continuous recalculation
-                c.x += sin(u_time * 0.5) * 0.5;
-                c.y += cos(u_time * 0.3) * 0.5;
-                c *= 1.5 + sin(u_time * 0.2);
+                // Animate pan and zoom continuously to prevent the GPU from optimizing or caching
+                c.x += sin(u_time * 0.2) * 0.8;
+                c.y += cos(u_time * 0.15) * 0.8;
+                c *= 0.5 + sin(u_time * 0.1) * 0.4;
 
                 vec2 z = c;
                 int iter = 0;
                 
-                // HEAVY LOOP: 500 iterations per pixel!
-                for(int i = 0; i < 500; i++) {
+                // EXTREME LOOP: 1000 iterations per pixel.
+                // On a 1080p screen, this is roughly 2,000,000,000 loop cycles per frame.
+                for(int i = 0; i < 1000; i++) {
                     if(z.x*z.x + z.y*z.y > 4.0) break;
-                    // z = z^2 + c
                     z = vec2(z.x*z.x - z.y*z.y, 2.0*z.x*z.y) + c;
                     iter++;
                 }
 
-                // Color mapping based on iterations
-                float f = float(iter) / 500.0;
-                gl_FragColor = vec4(f * abs(sin(u_time)), f * abs(cos(u_time)), f, 1.0);
+                // Map the iterations to complex psychedelic colors
+                float f = float(iter) / 1000.0;
+                float r = sin(f * 30.0 + u_time) * 0.5 + 0.5;
+                float g = cos(f * 20.0 - u_time * 1.5) * 0.5 + 0.5;
+                float b = sin(f * 40.0 + u_time * 2.0) * 0.5 + 0.5;
+
+                gl_FragColor = vec4(r, g, b, 1.0);
             }
         `;
 
         function initWebGL() {
             gl = canvas.getContext('webgl');
+            if (!gl) {
+                alert("WebGL is not supported by your browser/hardware.");
+                return false;
+            }
+            
             canvas.width = window.innerWidth;
             canvas.height = window.innerHeight;
 
-            // Compile Shaders
             const vertexShader = gl.createShader(gl.VERTEX_SHADER);
             gl.shaderSource(vertexShader, vsSource);
             gl.compileShader(vertexShader);
@@ -237,14 +187,18 @@
             gl.shaderSource(fragmentShader, fsSource);
             gl.compileShader(fragmentShader);
 
-            // Link Program
+            // Check for shader compilation errors
+            if (!gl.getShaderParameter(fragmentShader, gl.COMPILE_STATUS)) {
+                console.error('Shader error:', gl.getShaderInfoLog(fragmentShader));
+                return false;
+            }
+
             program = gl.createProgram();
             gl.attachShader(program, vertexShader);
             gl.attachShader(program, fragmentShader);
             gl.linkProgram(program);
             gl.useProgram(program);
 
-            // Setup full screen quad
             const positionBuffer = gl.createBuffer();
             gl.bindBuffer(gl.ARRAY_BUFFER, positionBuffer);
             gl.bufferData(gl.ARRAY_BUFFER, new Float32Array([
@@ -256,31 +210,8 @@
             gl.enableVertexAttribArray(positionLocation);
             gl.vertexAttribPointer(positionLocation, 2, gl.FLOAT, false, 0, 0);
 
-            // Set Resolution Uniform
             const resLocation = gl.getUniformLocation(program, "u_resolution");
             gl.uniform2f(resLocation, canvas.width, canvas.height);
             
             timeLocation = gl.getUniformLocation(program, "u_time");
-        }
-
-        function render() {
-            if (!gpuActive) return;
-            
-            // Pass time to shader to animate the fractal
-            gl.uniform1f(timeLocation, (Date.now() - startTime) / 1000.0);
-            
-            // Draw
-            gl.drawArrays(gl.TRIANGLES, 0, 6);
-            
-            // Loop
-            reqAnimFrame = requestAnimationFrame(render);
-        }
-
-        gpuBtn.addEventListener('click', () => {
-            if (!gpuActive) {
-                // Start GPU Stress
-                gpuActive = true;
-                canvas.style.opacity = "1";
-                gpuStatus.textContent = "RENDER TORTURE";
-                gpuStatus.className = "status stressing";
-                gpuCard.className = "card active";
+            return
