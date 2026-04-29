@@ -3,250 +3,258 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>ASCII Art Generator</title>
+    <title>Particle Effects MVP</title>
     <style>
-        :root {
-            --bg-color: #f4f4f9;
-            --text-color: #333;
-            --accent-color: #4a90e2;
-            --panel-bg: #ffffff;
-        }
-
-        body {
-            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-            background-color: var(--bg-color);
-            color: var(--text-color);
+        body, html {
             margin: 0;
-            padding: 20px;
-            display: flex;
-            flex-direction: column;
-            align-items: center;
-        }
-
-        h1 {
-            margin-top: 0;
-            color: var(--accent-color);
-        }
-
-        .controls {
-            background: var(--panel-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            margin-bottom: 20px;
-            display: flex;
-            flex-wrap: wrap;
-            gap: 15px;
-            align-items: center;
-            max-width: 800px;
+            padding: 0;
             width: 100%;
+            height: 100%;
+            overflow: hidden;
+            background-color: #111; /* Dark background to make particles pop */
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+        }
+
+        canvas {
+            display: block;
+            width: 100%;
+            height: 100%;
+        }
+
+        .controls-panel {
+            position: absolute;
+            top: 20px;
+            left: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            backdrop-filter: blur(10px);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            padding: 20px;
+            border-radius: 12px;
+            color: white;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.5);
+            width: 280px;
+            z-index: 10;
+        }
+
+        h2 {
+            margin-top: 0;
+            font-size: 1.2rem;
+            border-bottom: 1px solid rgba(255,255,255,0.2);
+            padding-bottom: 10px;
         }
 
         .control-group {
+            margin-bottom: 15px;
             display: flex;
             flex-direction: column;
             gap: 5px;
         }
 
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+        }
+
         label {
-            font-size: 0.9rem;
-            font-weight: bold;
+            font-size: 0.85rem;
+            opacity: 0.9;
         }
 
-        input[type="file"], select, input[type="number"] {
-            padding: 8px;
-            border: 1px solid #ccc;
-            border-radius: 4px;
-        }
-
-        button {
-            background-color: var(--accent-color);
-            color: white;
-            border: none;
-            padding: 10px 15px;
-            border-radius: 4px;
+        input[type="range"] {
+            width: 100%;
             cursor: pointer;
-            font-weight: bold;
-            transition: background 0.3s ease;
         }
 
-        button:hover {
-            background-color: #357abd;
+        input[type="color"] {
+            background: none;
+            border: none;
+            cursor: pointer;
+            width: 40px;
+            height: 30px;
+            padding: 0;
         }
 
-        button:disabled {
-            background-color: #ccc;
-            cursor: not-allowed;
+        input[type="checkbox"] {
+            cursor: pointer;
+            width: 16px;
+            height: 16px;
         }
-
-        .output-container {
-            background: var(--panel-bg);
-            padding: 20px;
-            border-radius: 8px;
-            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
-            max-width: 100%;
-            overflow: auto;
-        }
-
-        /* Crucial CSS for ASCII Art */
-        pre {
-            font-family: monospace;
-            font-size: 8px;
-            line-height: 8px;
-            letter-spacing: 0;
-            margin: 0;
-            white-space: pre;
-            color: black;
+        
+        .hint {
+            font-size: 0.75rem;
+            opacity: 0.6;
+            margin-top: 10px;
+            text-align: center;
         }
     </style>
 </head>
 <body>
 
-    <h1>ASCII Art Generator</h1>
-
-    <div class="controls">
+    <div class="controls-panel">
+        <h2>Particle Physics</h2>
+        
         <div class="control-group">
-            <label for="imageUpload">1. Upload Image</label>
-            <input type="file" id="imageUpload" accept="image/*">
-        </div>
-
-        <div class="control-group">
-            <label for="charSet">2. Style (Density)</label>
-            <select id="charSet">
-                <option value="@%#*+=-:. ">Dense (@%#*+=-:. )</option>
-                <option value="@#S%?*+;:, ">Medium (@#S%?*+;:, )</option>
-                <option value="#;:, ">Sparse (#;:, )</option>
-            </select>
+            <label for="speedCtrl">Burst Speed (<span id="speedVal">5</span>)</label>
+            <input type="range" id="speedCtrl" min="1" max="15" step="1" value="5">
         </div>
 
         <div class="control-group">
-            <label for="outputWidth">3. Width (Characters)</label>
-            <input type="number" id="outputWidth" value="100" min="20" max="300" step="10">
+            <label for="gravityCtrl">Gravity (<span id="gravityVal">0.2</span>)</label>
+            <input type="range" id="gravityCtrl" min="-0.5" max="2" step="0.1" value="0.2">
         </div>
 
-        <div class="control-group" style="flex-direction: row; align-items: center; margin-top: 15px;">
-            <input type="checkbox" id="invertColors">
-            <label for="invertColors">Invert Colors</label>
+        <div class="control-group">
+            <label for="countCtrl">Particle Count (<span id="countVal">50</span>)</label>
+            <input type="range" id="countCtrl" min="10" max="200" step="10" value="50">
         </div>
 
-        <div class="control-group" style="margin-left: auto; margin-top: 15px;">
-            <button id="downloadBtn" disabled>4. Download .txt</button>
+        <div class="control-row" style="margin-bottom: 15px;">
+            <label for="colorCtrl">Particle Color</label>
+            <input type="color" id="colorCtrl" value="#00ffcc">
         </div>
+
+        <div class="control-row">
+            <label for="trailCtrl">Mouse Trail</label>
+            <input type="checkbox" id="trailCtrl" checked>
+        </div>
+
+        <div class="control-row" style="margin-top: 10px;">
+            <label for="autoCtrl">Auto Mode (Ambient)</label>
+            <input type="checkbox" id="autoCtrl">
+        </div>
+
+        <div class="hint">Click anywhere on the screen!</div>
     </div>
 
-    <div class="output-container">
-        <pre id="asciiOutput">Upload an image to see the ASCII preview here...</pre>
-    </div>
-
-    <canvas id="hiddenCanvas" style="display:none;"></canvas>
+    <canvas id="particleCanvas"></canvas>
 
     <script>
-        const imageUpload = document.getElementById('imageUpload');
-        const charSetSelect = document.getElementById('charSet');
-        const outputWidthInput = document.getElementById('outputWidth');
-        const invertColorsCheckbox = document.getElementById('invertColors');
-        const downloadBtn = document.getElementById('downloadBtn');
-        const asciiOutput = document.getElementById('asciiOutput');
-        const canvas = document.getElementById('hiddenCanvas');
-        const ctx = canvas.getContext('2d', { willReadFrequently: true });
+        const canvas = document.getElementById('particleCanvas');
+        const ctx = canvas.getContext('2d');
 
-        let currentImage = null;
+        // UI Controls
+        const speedCtrl = document.getElementById('speedCtrl');
+        const gravityCtrl = document.getElementById('gravityCtrl');
+        const countCtrl = document.getElementById('countCtrl');
+        const colorCtrl = document.getElementById('colorCtrl');
+        const trailCtrl = document.getElementById('trailCtrl');
+        const autoCtrl = document.getElementById('autoCtrl');
 
-        // --- Event Listeners ---
-        imageUpload.addEventListener('change', handleImageUpload);
-        charSetSelect.addEventListener('change', generateASCII);
-        outputWidthInput.addEventListener('change', generateASCII);
-        invertColorsCheckbox.addEventListener('change', generateASCII);
-        downloadBtn.addEventListener('click', downloadASCII);
+        // Value displays
+        const speedVal = document.getElementById('speedVal');
+        const gravityVal = document.getElementById('gravityVal');
+        const countVal = document.getElementById('countVal');
 
-        // --- Functions ---
-        function handleImageUpload(event) {
-            const file = event.target.files[0];
-            if (!file) return;
+        // Update UI text dynamically
+        speedCtrl.addEventListener('input', (e) => speedVal.textContent = e.target.value);
+        gravityCtrl.addEventListener('input', (e) => gravityVal.textContent = e.target.value);
+        countCtrl.addEventListener('input', (e) => countVal.textContent = e.target.value);
 
-            const reader = new FileReader();
-            reader.onload = function(e) {
-                const img = new Image();
-                img.onload = function() {
-                    currentImage = img;
-                    generateASCII();
-                    downloadBtn.disabled = false;
-                };
-                img.src = e.target.result;
-            };
-            reader.readAsDataURL(file);
+        let particles = [];
+        let autoModeInterval;
+
+        // Resize Canvas to fit screen
+        function resizeCanvas() {
+            canvas.width = window.innerWidth;
+            canvas.height = window.innerHeight;
+        }
+        window.addEventListener('resize', resizeCanvas);
+        resizeCanvas();
+
+        // Particle Class
+        class Particle {
+            constructor(x, y) {
+                this.x = x;
+                this.y = y;
+                this.size = Math.random() * 5 + 2; // Random size between 2 and 7
+                
+                // Base speed and random angle
+                const speedMulti = parseFloat(speedCtrl.value);
+                const angle = Math.random() * Math.PI * 2;
+                const velocity = Math.random() * speedMulti;
+                
+                this.vx = Math.cos(angle) * velocity;
+                this.vy = Math.sin(angle) * velocity;
+                
+                this.color = colorCtrl.value;
+                this.alpha = 1;
+                this.decay = Math.random() * 0.015 + 0.01; // How fast it fades out
+                this.gravity = parseFloat(gravityCtrl.value);
+            }
+
+            update() {
+                this.vy += this.gravity; // Apply gravity
+                this.x += this.vx;       // Apply velocity X
+                this.y += this.vy;       // Apply velocity Y
+                this.alpha -= this.decay; // Fade out
+            }
+
+            draw() {
+                ctx.save();
+                ctx.globalAlpha = Math.max(0, this.alpha);
+                ctx.fillStyle = this.color;
+                ctx.beginPath();
+                ctx.arc(this.x, this.y, this.size, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.restore();
+            }
         }
 
-        function generateASCII() {
-            if (!currentImage) return;
-
-            // 1. Get settings
-            let charSet = charSetSelect.value;
-            if (invertColorsCheckbox.checked) {
-                charSet = charSet.split('').reverse().join('');
+        // Spawn a burst of particles
+        function spawnParticles(x, y, isTrail = false) {
+            const count = isTrail ? 2 : parseInt(countCtrl.value); // Less particles for trail
+            for (let i = 0; i < count; i++) {
+                particles.push(new Particle(x, y));
             }
-            const width = parseInt(outputWidthInput.value) || 100;
+        }
 
-            // 2. Calculate aspect ratio. 
-            // Monospace characters are roughly twice as tall as they are wide.
-            // We multiply the height by ~0.55 to prevent the image from looking stretched vertically.
-            const aspectRatio = currentImage.height / currentImage.width;
-            const fontAspectRatioCorrection = 0.55; 
-            const height = Math.floor(width * aspectRatio * fontAspectRatioCorrection);
+        // Interaction Listeners
+        canvas.addEventListener('mousedown', (e) => {
+            spawnParticles(e.clientX, e.clientY);
+        });
 
-            // 3. Set canvas size and draw resized image
-            canvas.width = width;
-            canvas.height = height;
-            ctx.drawImage(currentImage, 0, 0, width, height);
+        canvas.addEventListener('mousemove', (e) => {
+            if (trailCtrl.checked) {
+                spawnParticles(e.clientX, e.clientY, true);
+            }
+        });
 
-            // 4. Get pixel data
-            const imageData = ctx.getImageData(0, 0, width, height);
-            const pixels = imageData.data;
+        // Auto Mode logic
+        autoCtrl.addEventListener('change', (e) => {
+            if (e.target.checked) {
+                autoModeInterval = setInterval(() => {
+                    const randomX = Math.random() * canvas.width;
+                    const randomY = Math.random() * (canvas.height / 2); // Spawn mostly in top half
+                    spawnParticles(randomX, randomY);
+                }, 400); // Burst every 400ms
+            } else {
+                clearInterval(autoModeInterval);
+            }
+        });
 
-            let asciiStr = '';
+        // Main Animation Loop
+        function animate() {
+            // Clear canvas completely each frame
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-            // 5. Loop through pixels and map brightness to ASCII
-            for (let y = 0; y < height; y++) {
-                for (let x = 0; x < width; x++) {
-                    const offset = (y * width + x) * 4;
-                    const r = pixels[offset];
-                    const g = pixels[offset + 1];
-                    const b = pixels[offset + 2];
-                    
-                    // Calculate relative luminance (brightness)
-                    const brightness = (0.299 * r + 0.587 * g + 0.114 * b);
-                    
-                    // Map brightness (0-255) to character index
-                    const charIndex = Math.floor((brightness / 255) * (charSet.length - 1));
-                    
-                    asciiStr += charSet[charIndex];
+            // Update and draw all particles
+            for (let i = particles.length - 1; i >= 0; i--) {
+                const p = particles[i];
+                p.update();
+                p.draw();
+
+                // Remove dead particles to prevent memory leaks
+                if (p.alpha <= 0) {
+                    particles.splice(i, 1);
                 }
-                asciiStr += '\n'; // New line at the end of each row
             }
 
-            // 6. Output to screen
-            asciiOutput.textContent = asciiStr;
+            requestAnimationFrame(animate);
         }
 
-        function downloadASCII() {
-            const asciiText = asciiOutput.textContent;
-            if (asciiText === "Upload an image to see the ASCII preview here...") return;
-
-            // Create a Blob with the text content
-            const blob = new Blob([asciiText], { type: "text/plain" });
-            const url = URL.createObjectURL(blob);
-            
-            // Create a temporary link to trigger the download
-            const a = document.createElement("a");
-            a.href = url;
-            a.download = "ascii-art.txt";
-            document.body.appendChild(a);
-            a.click();
-            
-            // Clean up
-            document.body.removeChild(a);
-            URL.revokeObjectURL(url);
-        }
+        // Start loop
+        animate();
     </script>
 </body>
 </html>
